@@ -525,7 +525,7 @@ function shifty.del(tag)
   index_cache[scr][t.name] = idx
 
   -- remove tag
-  awful.tag.setscreen(t, nil)
+  awful.tag.delete(t)
 
   -- if the current tag is being deleted, restore from history
   if t == sel and #tags > 1 then
@@ -557,7 +557,7 @@ end
 --match : handles app->tag matching, a replacement for the manage hook in
 --            rc.lua
 --@param c : client to be matched
-function match(c, startup)
+function match(c)
   local nopopup, intrusive, nofocus, run, slave
   local wfact, struts, geom, float
   local target_tag_names, target_tags = {}, {}
@@ -644,7 +644,7 @@ function match(c, startup)
             target_tag_names = a.tag
           end
         end
-        if a.startup and startup then
+        if a.startup and awesome.startup then
           a = awful.util.table.join(a, a.startup)
         end
         if a.geometry ~=nil then
@@ -756,6 +756,14 @@ function match(c, startup)
     awful.placement.no_offscreen(c)
   end
 
+  if not awesome.startup then
+     -- Put windows in a smart way, only if they does not set an initial position.
+     if not c.size_hints.user_position and not c.size_hints.program_position then
+        awful.placement.no_overlap(c)
+        awful.placement.no_offscreen(c)
+     end
+  end
+
   local sel = awful.tag.selectedlist(target_screen)
   if not target_tag_names or #target_tag_names == 0 then
     -- if not matched to some names try putting
@@ -828,12 +836,12 @@ function match(c, startup)
 
   local showtags = {}
   local u = nil
-  if #target_tags > 0 and not startup then
+  if #target_tags > 0 and not awesome.startup then
     -- switch or highlight
     for i, t in ipairs(target_tags) do
       if not (nopopup or awful.tag.getproperty(t, "nopopup")) then
         table.insert(showtags, t)
-      elseif not startup then
+      elseif not awesome.startup then
         c.urgent = true
       end
     end
@@ -870,7 +878,8 @@ function match(c, startup)
     -- Enable sloppy focus
     c:connect_signal("mouse::enter",
       function(c)
-        if awful.client.focus.filter(c) and awful.layout.get(c.screen) ~= awful.layout.suit.magnifier then
+         if awful.layout.get(c.screen) ~= awful.layout.suit.magnifier
+           and awful.client.focus.filter(c) then
           capi.client.focus = c
         end
       end
